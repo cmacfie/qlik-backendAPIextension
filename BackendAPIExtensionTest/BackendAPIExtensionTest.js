@@ -15,7 +15,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         }
         tests[id] = true;
         okCount++;
-        Gelement.find("tr.queue_" + id + " .queue_result").html("All OK");
+        Gelement.find("tr.queue_" + id + " .queue_result").html("OK");
         // $( "#" + id + "_result_root_api" ).html( "OK" );
         Gelement.find("tr.queue_" + id + " .queue_benchmark").html(t + " ms");
         // $( "#" + id + "_time_root_api" ).html( t + " ms" );
@@ -105,6 +105,15 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 },
                 sorting: {
                     uses: "sorting"
+                }, appearance : {
+                    uses: "settings",
+                    items: {
+                        title: {
+                            type: "string",
+                            ref: "props.title",
+                            label: "BeforeChange"
+                        }
+                    }
                 }
             }
         },
@@ -131,7 +140,8 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 var t = benchmark();
                 var me = this;
                 var dfd = qlik.Promise.defer();
-                if(layout.qHyperCube.qDataPages[0].qMatrix.length === 5){
+                let dataAtStart = layout.qHyperCube.qDataPages[0].qMatrix.length;
+                if(dataAtStart === 5){
                     let lastrow = layout.qHyperCube.qDataPages[0].qMatrix.length-1;
                     if (mainScope.backendApi.getRowCount() >= lastrow + 1) {
                         var requestPage = [{
@@ -152,7 +162,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                                 okTest(me.id, me.desc, t.finish())
                                 dfd.resolve();
                             } else {
-                                failTest(me.id, me.desc, t.finish(), "Fetched data wasn't === 7 after getData method");
+                                failTest(me.id, me.desc, t.finish(), "Fetched dataafter getData method === " + totalLength + ", expected 7");
                                 dfd.resolve();
                             }
                         });
@@ -161,10 +171,44 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         dfd.resolve();
                     }
                 } else {
-                    failTest(me.id, me.desc, t.finish(), "Fetched data wasn't === 5 at start");
+                    failTest(me.id, me.desc, t.finish(), "Fetched data at start === " + dataAtStart + ", expected 5");
                     dfd.resolve();
                 }
                 return dfd.promise;
+            });
+
+            queueTest("getRowCount", function () {
+                var t = benchmark();
+                var me = this;
+                var dfd = qlik.Promise.defer();
+                let getRowCount = mainScope.backendApi.getRowCount();
+                let layoutSize = layout.qHyperCube.qSize.qcy;
+                if(getRowCount === layoutSize){
+                    okTest(me.id, me.desc, t.finish());
+                    dfd.resolve();
+                } else {
+                    failTest(me.id, me.desc, t.finish(), "getRowCount was " + getRowCount + ", expected " + layoutSize);
+                    dfd.resolve();
+                }
+                return dfd.promise;
+            });
+
+            console.log(this.backendApi.getProperties());
+            queueTest("save", function () {
+                mainScope.backendApi.getProperties().then(function(promise){
+                    if(promise.title === "BeforeChange"){
+                        promise.title = "AfterChange";
+                        mainScope.backendApi.setProperties(promise);
+                        mainScope.backendApi.getProperties().then(function(promise){
+                            promise.
+                        }
+                    } else {
+
+                    }
+                    console.log(promise);
+                    promise.s
+                    mainScope.backendApi.setProperties()
+                });
             });
 
             runTests();

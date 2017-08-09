@@ -6,9 +6,8 @@
 
 .qvplaceholder, .qvobject {
 	flex: 1 1 auto;
-	height: 300px;
+	height: 700px;
 	min-width: 400px;
-    width:900px;
 	margin: 45px 0 0 45px;
 }
 
@@ -49,4 +48,9 @@
 
 #popupText {
 	margin-right: 23px;
+}
+
+.loadingBox {
+    padding: 5px;
+    background-color:lightgrey
 }

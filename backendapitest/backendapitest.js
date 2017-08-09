@@ -30,7 +30,10 @@ require( ["js/qlik"], function ( qlik ) {
 	var app = qlik.openApp('SoftwareCompany.qvf', config);
 
 	//get objects -- inserted here --
-	app.getObject('QV04','gJR');
+	app.getObject('QV01','gJR');
+	
+	
+	
 	//create cubes and lists -- inserted here --
 
 } );
