@@ -25,15 +25,54 @@ require( ["js/qlik"], function ( qlik ) {
 		$( '#popup' ).hide();
 	} );
 
-	//callbacks -- inserted here --
+
 	//open apps -- inserted here --
-	var app = qlik.openApp('SoftwareCompany.qvf', config);
+
+	var app = qlik.openApp('Helpdesk Management.qvf', config);
 
 	//get objects -- inserted here --
-	app.getObject('QV01','gJR');
-	
-	
-	
-	//create cubes and lists -- inserted here --
+	app.getObject('QV01','fxq');
+
+	console.log("app", app);
+
+
+    //callbacks -- inserted here --
+    function PriorityCall(reply, app){}
+
+
+    //create cubes and lists -- inserted here --
+    app.createCube({
+        "qInitialDataFetch": [
+            {
+                "qHeight": 20,
+                "qWidth": 1
+            }
+        ],
+        "qDimensions": [
+            {
+                "qLabel": "Year",
+                "qLibraryId": "jySjA",
+                "qNullSuppression": true,
+                "qOtherTotalSpec": {
+                    "qOtherMode": "OTHER_OFF",
+                    "qSuppressOther": true,
+                    "qOtherSortMode": "OTHER_SORT_DESCENDING",
+                    "qOtherCounted": {
+                        "qv": "5"
+                    },
+                    "qOtherLimitMode": "OTHER_GE_LIMIT"
+                }
+            }
+        ],
+        "qMeasures": [],
+        "qSuppressZero": true,
+        "qSuppressMissing": true,
+        "qMode": "P",
+        "qInterColumnSortOrder": [],
+        "qStateName": "$"
+    },PriorityCall);
 
 } );
+
+
+

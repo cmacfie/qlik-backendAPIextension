@@ -4,6 +4,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
     var testCount = 0, okCount = 0, tests = {};
     var promisesArray = [];
+    var promisesArray_recallers = [];
 
     var Gelement, resultElement, tbodyElement;
 
@@ -11,7 +12,10 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
     var setProperty_done = false;
     var setProperty_stage = 1;
 
-    var runTestsFlag = true;
+    var recallsDone = false;
+    var testCount = 0;
+
+    var runOnceFlag = false;
 
     var currAppWithThis, currApp;
 
@@ -50,15 +54,23 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         console.log(description + " -- failed");
     }
 
-    function queueTest(description, promise) {
-        console.log("test: " + description + " is queued");
+    function queueTest(description, promise, isRecaller) {
         var id = ++testCount;
         var html = '<td>' + id + '</td><td>' + description + '</td><td class="queue_result"></td><td class="queue_benchmark"></td>';
-        tbodyElement.append('<tr class="queue_' + id + '"></tr>');
-        tbodyElement.find("tr:last").append(html);
 
-        promisesArray.push(promise.bind({id: id, desc: description}));
+        /** Only add it if a test with the description doesn't already exist */
+        if (document.documentElement.innerHTML.indexOf(description) === -1) {
+            console.log("test: " + description + " is queued");
+            tbodyElement.append('<tr class="queue_' + id + '"></tr>');
+            tbodyElement.find("tr:last").append(html);
+            if (isRecaller) {
+                promisesArray_recallers.push(promise.bind({id: id, desc: description}));
+            } else {
+                promisesArray.push(promise.bind({id: id, desc: description}));
+            }
+        }
     }
+
 
     function benchmark() {
         var start = new Date();
@@ -74,6 +86,14 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         console.log("start running Root API tests");
         return sequence(qlik.Promise, promisesArray).then(function () {
             console.log("--finished-- running Root API tests");
+            //restore mode
+            qlik.navigation.setMode(currentMode);
+        });
+    }
+
+    function runRecallTests() {
+        var currentMode = qlik.navigation.getMode();
+        return sequence(qlik.Promise, promisesArray_recallers).then(function () {
             //restore mode
             qlik.navigation.setMode(currentMode);
         });
@@ -133,13 +153,11 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         paint: function ($element, layout) {
 
             let mainScope = this;
-            console.log(layout);
 
-            testCount = 0;
             Gelement = $element;
             resultElement = $element.find(".result");
             tbodyElement = $element.find("tbody");
-            tbodyElement.empty();
+            // tbodyElement.empty();
             currApp = (currApp) ? currApp : qlik.currApp();
             currAppWithThis = (currAppWithThis) ? currAppWithThis : qlik.currApp(this);
 
@@ -163,11 +181,10 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                     } else if (propsBefore.props.testtitle === "testingtitle" && setProperty_testInProgress) {
                         setProperty_testInProgress = false;
                         setProperty_done = true;
+                        recallsDone = true;
                         okTest(me.id, me.desc, t.finish());
                         dfd.resolve();
                     } else {
-                        setProperty_done = true;
-                        setProperty_stage = 1;
                         var failMessage = "";
                         switch (setProperty_stage) {
                             case 1 :
@@ -183,12 +200,14 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                                 failMessage = "testtitle was " + propsBefore.props.testtitle;
                                 break;
                         }
+                        setProperty_done = true;
                         failTest(me.id, me.desc, t.finish(), failMessage);
                         dfd.resolve();
                     }
                 });
                 return dfd.promise;
-            });
+            }, true);
+
 
             //TODO Acting weird, returning null
             // queueTest("search", function () {
@@ -231,7 +250,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
 
             /** Either first lap to fill the table with the tests, or last rerun to actually execute them */
-            if (setProperty_stage == 3) {
+            if (setProperty_stage === 3 && !runOnceFlag) {
 
                 // queueTest("collapseLeft", function () {
                 //     console.log(mainScope);
@@ -239,27 +258,30 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 //         console.log(dataPages);
                 //     });
                 // });
-                //
-                // queueTest("Select Range", function () {
-                //     var t = benchmark();
-                //     var me = this;
-                //     var dfd = qlik.Promise.defer();
-                //     var range = {
-                //         "qMeasureIx": 0,
-                //         "qRange": {
-                //             "qMin": 0,
-                //             "qMax": 600,
-                //             "qMinInclEq": true,
-                //             "qMaxInclEq": true
-                //         }
-                //     };
-                //     mainScope.backendApi.selectRange([range], false).then(function () {
-                //         okTest(me.id, me.desc, t.finish());
-                //     });
-                // });
+
+                queueTest("Select Range", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+                    var range = {
+                        "qMeasureIx": 0,
+                        "qRange": {
+                            "qMin": 0,
+                            "qMax": 2,
+                        }
+                    };
+                    console.log(mainScope.backendApi.selectRange([range], false));
+                    mainScope.backendApi.selectRange([range], false).then(function () {
+                        okTest(me.id, me.desc, t.finish());
+                        dfd.resolve();
+                    });
+                    console.log(layout);
+                    return dfd.promise;
+                }, true);
 
 
                 queueTest("getData", function () {
+                    console.log("Data started");
                     var t = benchmark();
                     var me = this;
                     var dfd = qlik.Promise.defer();
@@ -298,7 +320,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         dfd.resolve();
                     }
                     return dfd.promise;
-                });
+                }, false);
 
                 queueTest("getRowCount", function () {
                     var t = benchmark();
@@ -314,7 +336,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         dfd.resolve();
                     }
                     return dfd.promise;
-                });
+                }, false);
 
                 queueTest("getProperty", function () {
                     var t = benchmark();
@@ -330,13 +352,12 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         }
                     });
                     return dfd.promise;
-                });
+                }, false);
+                runTests();
+                runOnceFlag = true;
             }
 
-            if (runTestsFlag) {
-                runTestsFlag = false;
-                runTests();
-            }
+            runRecallTests();
 
             return qlik.Promise.resolve();
         },
