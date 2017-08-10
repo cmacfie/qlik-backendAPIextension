@@ -157,7 +157,6 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
             Gelement = $element;
             resultElement = $element.find(".result");
             tbodyElement = $element.find("tbody");
-            // tbodyElement.empty();
             currApp = (currApp) ? currApp : qlik.currApp();
             currAppWithThis = (currAppWithThis) ? currAppWithThis : qlik.currApp(this);
 
@@ -208,56 +207,41 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 return dfd.promise;
             }, true);
 
-
-            //TODO Acting weird, returning null
-            // queueTest("search", function () {
-            //     var t = benchmark();
-            //     var me = this;
-            //     var dfd = qlik.Promise.defer();
-            //
-            //     console.log("backendApi", mainScope.backendApi);
-            //     console.log("backendApi.search", mainScope.backendApi.search("C"));
-            //
-            //     mainScope.backendApi.search("C").then(function(searchResult){
-            //         console.log("res", searchResult);
-            //         var totalLength = 0;
-            //         layout.qHyperCube.qDataPages.forEach(function (page) {
-            //             totalLength += page.qMatrix.length;
-            //         });
-            //         conole.log("totLen", totalLength);
-            //         //Verify that the new total length is 7
-            //         // if (totalLength === 7) {
-            //         //     okTest
-            //         // }
-            //     });
-            //     return dfd.promise;
-            // });
-
-
-            // queueTest("reducedData", function () {
-            //     console.log(mainScope);
-            //     var requestPage = [{
-            //         qTop : 0,
-            //         qLeft : 0,
-            //         qWidth : 10,
-            //         qHeight : 3
-            //     }];
-            //     mainScope.backendApi.isHyperCube ? console.log("isHypercube") : console.log("NotHypercube");
-            //     mainScope.backendApi.getReducedData(requestPage, -1, "N").then(function(dataPages) {
-            //         console.log(dataPages);
-            //    });
-            // });
-
-
             /** Either first lap to fill the table with the tests, or last rerun to actually execute them */
             if (setProperty_stage === 3 && !runOnceFlag) {
 
-                // queueTest("collapseLeft", function () {
-                //     console.log(mainScope);
-                //     mainScope.backendApi.collapseLeft( 0, 0, true ).then(function(dataPages) {
-                //         console.log(dataPages);
-                //     });
-                // });
+                queueTest("getProperty", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+                    mainScope.backendApi.getProperties().then(function (propsBefore) {
+                        if (propsBefore.props.testtitle === "testingtitle") {
+                            okTest(me.id, me.desc, t.finish());
+                            dfd.resolve();
+                        } else {
+                            failTest(me.id, me.desc, t.finish(), "Expected title === 'TestingTitle', was " + propsBefore.props.title);
+                            dfd.resolve();
+                        }
+                    });
+                    return dfd.promise;
+                }, false);
+
+                queueTest("getMeasureInfos", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+
+                    var layout_title = layout.qHyperCube.qMeasureInfo[0].qFallbackTitle;
+                    var backendApi_title = mainScope.backendApi.getMeasureInfos()[0].qFallbackTitle;
+                    if(layout_title === backendApi_title){
+                        okTest(me.id, me.desc, t.finish());
+                        dfd.resolve();
+                    } else {
+                        failTest(me.id, me.desc, t.finish(), "Expected measuretitle to be " + layout_title + ", was " + backendApi_title);
+                        dfd.resolve();
+                    }
+                    return dfd.promise;
+                });
 
                 queueTest("Select Range", function () {
                     var t = benchmark();
@@ -267,15 +251,15 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         "qMeasureIx": 0,
                         "qRange": {
                             "qMin": 0,
-                            "qMax": 2,
+                            "qMax": 1,
                         }
                     };
-                    console.log(mainScope.backendApi.selectRange([range], false));
+
                     mainScope.backendApi.selectRange([range], false).then(function () {
                         okTest(me.id, me.desc, t.finish());
                         dfd.resolve();
                     });
-                    console.log(layout);
+                    console.log("layout",layout);
                     return dfd.promise;
                 }, true);
 
@@ -338,21 +322,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                     return dfd.promise;
                 }, false);
 
-                queueTest("getProperty", function () {
-                    var t = benchmark();
-                    var me = this;
-                    var dfd = qlik.Promise.defer();
-                    mainScope.backendApi.getProperties().then(function (propsBefore) {
-                        if (propsBefore.props.testtitle === "testingtitle") {
-                            okTest(me.id, me.desc, t.finish());
-                            dfd.resolve();
-                        } else {
-                            failTest(me.id, me.desc, t.finish(), "Expected title === 'TestingTitle', was " + propsBefore.props.title);
-                            dfd.resolve();
-                        }
-                    });
-                    return dfd.promise;
-                }, false);
+
                 runTests();
                 runOnceFlag = true;
             }
