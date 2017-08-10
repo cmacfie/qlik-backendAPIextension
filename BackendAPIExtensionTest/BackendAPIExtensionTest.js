@@ -7,6 +7,12 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
     var Gelement, resultElement, tbodyElement;
 
+    var setProperty_testInProgress = false;
+    var setProperty_done = false;
+    var setProperty_stage = 1;
+
+    var runTestsFlag = true;
+
     var currAppWithThis, currApp;
 
     function okTest(id, description, t) {
@@ -105,13 +111,15 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 },
                 sorting: {
                     uses: "sorting"
-                }, appearance : {
+                }
+                , settings: {
                     uses: "settings",
                     items: {
                         title: {
                             type: "string",
-                            ref: "props.title",
-                            label: "BeforeChange"
+                            ref: "props.testtitle",
+                            label: "TestTitle",
+                            defaultValue: "testingtitle"
                         }
                     }
                 }
@@ -125,7 +133,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         paint: function ($element, layout) {
 
             let mainScope = this;
-
+            console.log(layout);
 
             testCount = 0;
             Gelement = $element;
@@ -135,83 +143,201 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
             currApp = (currApp) ? currApp : qlik.currApp();
             currAppWithThis = (currAppWithThis) ? currAppWithThis : qlik.currApp(this);
 
-
-            queueTest("getData", function () {
+            /** Advanced test because setProperty recalls paint. What code to execute kept track of via flags.
+             * 1. Verify that title and the change the title
+             * 2. Verify the change and then change it back for next round */
+            queueTest("setProperty", function () {
                 var t = benchmark();
                 var me = this;
                 var dfd = qlik.Promise.defer();
-                let dataAtStart = layout.qHyperCube.qDataPages[0].qMatrix.length;
-                if(dataAtStart === 5){
-                    let lastrow = layout.qHyperCube.qDataPages[0].qMatrix.length-1;
-                    if (mainScope.backendApi.getRowCount() >= lastrow + 1) {
-                        var requestPage = [{
-                            qTop: lastrow+1,
-                            qLeft: 0,
-                            qWidth: 4,
-                            qHeight: 2
-                        }];
-                        //Get mroe data
-                        mainScope.backendApi.getData(requestPage).then(function(promise){
-                            //Sum the length of all pages
-                            var totalLength = 0;
-                            layout.qHyperCube.qDataPages.forEach(function(page){
-                                totalLength += page.qMatrix.length;
-                            });
-                            //Verify that the new total length is 7
-                            if(totalLength === 7){
-                                okTest(me.id, me.desc, t.finish())
-                                dfd.resolve();
-                            } else {
-                                failTest(me.id, me.desc, t.finish(), "Fetched dataafter getData method === " + totalLength + ", expected 7");
-                                dfd.resolve();
-                            }
-                        });
+                mainScope.backendApi.getProperties().then(function (propsBefore) {
+                    if (propsBefore.props.testtitle === "testingtitle" && !setProperty_testInProgress && !setProperty_done) {
+                        setProperty_stage = 2;
+                        setProperty_testInProgress = true;
+                        propsBefore.props.testtitle = "testingtitle2";
+                        mainScope.backendApi.setProperties(propsBefore);
+                    } else if (propsBefore.props.testtitle === "testingtitle2" && setProperty_testInProgress) {
+                        setProperty_stage = 3;
+                        propsBefore.props.testtitle = "testingtitle";
+                        mainScope.backendApi.setProperties(propsBefore);
+                    } else if (propsBefore.props.testtitle === "testingtitle" && setProperty_testInProgress) {
+                        setProperty_testInProgress = false;
+                        setProperty_done = true;
+                        okTest(me.id, me.desc, t.finish());
+                        dfd.resolve();
                     } else {
-                        failTest(me.id, me.desc, t.finish(), "Already fetched all available data");
+                        setProperty_done = true;
+                        setProperty_stage = 1;
+                        var failMessage = "";
+                        switch (setProperty_stage) {
+                            case 1 :
+                                failMessage = "Expected title === 'testingtitle, was " + propsBefore.props.testtitle;
+                                break;
+                            case 2 :
+                                failMessage = "Expected title === 'testingtitle2, was " + propsBefore.props.testtitle;
+                                break;
+                            case 3 :
+                                failMessage = "Expected title === 'testingtitle, was " + propsBefore.props.testtitle;
+                                break;
+                            default :
+                                failMessage = "testtitle was " + propsBefore.props.testtitle;
+                                break;
+                        }
+                        failTest(me.id, me.desc, t.finish(), failMessage);
                         dfd.resolve();
                     }
-                } else {
-                    failTest(me.id, me.desc, t.finish(), "Fetched data at start === " + dataAtStart + ", expected 5");
-                    dfd.resolve();
-                }
+                });
                 return dfd.promise;
             });
 
-            queueTest("getRowCount", function () {
-                var t = benchmark();
-                var me = this;
-                var dfd = qlik.Promise.defer();
-                let getRowCount = mainScope.backendApi.getRowCount();
-                let layoutSize = layout.qHyperCube.qSize.qcy;
-                if(getRowCount === layoutSize){
-                    okTest(me.id, me.desc, t.finish());
-                    dfd.resolve();
-                } else {
-                    failTest(me.id, me.desc, t.finish(), "getRowCount was " + getRowCount + ", expected " + layoutSize);
-                    dfd.resolve();
-                }
-                return dfd.promise;
-            });
+            //TODO Acting weird, returning null
+            // queueTest("search", function () {
+            //     var t = benchmark();
+            //     var me = this;
+            //     var dfd = qlik.Promise.defer();
+            //
+            //     console.log("backendApi", mainScope.backendApi);
+            //     console.log("backendApi.search", mainScope.backendApi.search("C"));
+            //
+            //     mainScope.backendApi.search("C").then(function(searchResult){
+            //         console.log("res", searchResult);
+            //         var totalLength = 0;
+            //         layout.qHyperCube.qDataPages.forEach(function (page) {
+            //             totalLength += page.qMatrix.length;
+            //         });
+            //         conole.log("totLen", totalLength);
+            //         //Verify that the new total length is 7
+            //         // if (totalLength === 7) {
+            //         //     okTest
+            //         // }
+            //     });
+            //     return dfd.promise;
+            // });
 
-            console.log(this.backendApi.getProperties());
-            queueTest("save", function () {
-                mainScope.backendApi.getProperties().then(function(promise){
-                    if(promise.title === "BeforeChange"){
-                        promise.title = "AfterChange";
-                        mainScope.backendApi.setProperties(promise);
-                        mainScope.backendApi.getProperties().then(function(promise){
-                            promise.
+
+            // queueTest("reducedData", function () {
+            //     console.log(mainScope);
+            //     var requestPage = [{
+            //         qTop : 0,
+            //         qLeft : 0,
+            //         qWidth : 10,
+            //         qHeight : 3
+            //     }];
+            //     mainScope.backendApi.isHyperCube ? console.log("isHypercube") : console.log("NotHypercube");
+            //     mainScope.backendApi.getReducedData(requestPage, -1, "N").then(function(dataPages) {
+            //         console.log(dataPages);
+            //    });
+            // });
+
+
+            /** Either first lap to fill the table with the tests, or last rerun to actually execute them */
+            if (setProperty_stage == 3) {
+
+                // queueTest("collapseLeft", function () {
+                //     console.log(mainScope);
+                //     mainScope.backendApi.collapseLeft( 0, 0, true ).then(function(dataPages) {
+                //         console.log(dataPages);
+                //     });
+                // });
+                //
+                // queueTest("Select Range", function () {
+                //     var t = benchmark();
+                //     var me = this;
+                //     var dfd = qlik.Promise.defer();
+                //     var range = {
+                //         "qMeasureIx": 0,
+                //         "qRange": {
+                //             "qMin": 0,
+                //             "qMax": 600,
+                //             "qMinInclEq": true,
+                //             "qMaxInclEq": true
+                //         }
+                //     };
+                //     mainScope.backendApi.selectRange([range], false).then(function () {
+                //         okTest(me.id, me.desc, t.finish());
+                //     });
+                // });
+
+
+                queueTest("getData", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+                    let dataAtStart = layout.qHyperCube.qDataPages[0].qMatrix.length;
+                    if (dataAtStart === 5) {
+                        let lastrow = layout.qHyperCube.qDataPages[0].qMatrix.length - 1;
+                        if (mainScope.backendApi.getRowCount() >= lastrow + 1) {
+                            var requestPage = [{
+                                qTop: lastrow + 1,
+                                qLeft: 0,
+                                qWidth: 4,
+                                qHeight: 2
+                            }];
+                            //Get mroe data
+                            mainScope.backendApi.getData(requestPage).then(function (promise) {
+                                //Sum the length of all pages
+                                var totalLength = 0;
+                                layout.qHyperCube.qDataPages.forEach(function (page) {
+                                    totalLength += page.qMatrix.length;
+                                });
+                                //Verify that the new total length is 7
+                                if (totalLength === 7) {
+                                    okTest(me.id, me.desc, t.finish())
+                                    dfd.resolve();
+                                } else {
+                                    failTest(me.id, me.desc, t.finish(), "Fetched dataafter getData method === " + totalLength + ", expected 7");
+                                    dfd.resolve();
+                                }
+                            });
+                        } else {
+                            failTest(me.id, me.desc, t.finish(), "Already fetched all available data");
+                            dfd.resolve();
                         }
                     } else {
-
+                        failTest(me.id, me.desc, t.finish(), "Fetched data at start === " + dataAtStart + ", expected 5");
+                        dfd.resolve();
                     }
-                    console.log(promise);
-                    promise.s
-                    mainScope.backendApi.setProperties()
+                    return dfd.promise;
                 });
-            });
 
-            runTests();
+                queueTest("getRowCount", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+                    let getRowCount = mainScope.backendApi.getRowCount();
+                    let layoutSize = layout.qHyperCube.qSize.qcy;
+                    if (getRowCount === layoutSize) {
+                        okTest(me.id, me.desc, t.finish());
+                        dfd.resolve();
+                    } else {
+                        failTest(me.id, me.desc, t.finish(), "getRowCount was " + getRowCount + ", expected " + layoutSize);
+                        dfd.resolve();
+                    }
+                    return dfd.promise;
+                });
+
+                queueTest("getProperty", function () {
+                    var t = benchmark();
+                    var me = this;
+                    var dfd = qlik.Promise.defer();
+                    mainScope.backendApi.getProperties().then(function (propsBefore) {
+                        if (propsBefore.props.testtitle === "testingtitle") {
+                            okTest(me.id, me.desc, t.finish());
+                            dfd.resolve();
+                        } else {
+                            failTest(me.id, me.desc, t.finish(), "Expected title === 'TestingTitle', was " + propsBefore.props.title);
+                            dfd.resolve();
+                        }
+                    });
+                    return dfd.promise;
+                });
+            }
+
+            if (runTestsFlag) {
+                runTestsFlag = false;
+                runTests();
+            }
+
             return qlik.Promise.resolve();
         },
         controller: ['$scope', function (/*$scope*/) {
@@ -219,19 +345,4 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
     };
 });
 
-
-/** Fill with all available rows, add  */
-function fillWithRows(me){
-    var rowCount = me.backendApi.getRowCount();
-    var requestPage = [{
-        qTop: me.$element.find(".infoSquare").length,
-        qLeft: 0,
-        qWidth: 4,
-        qHeight: 5000
-    }];
-    me.backendApi.getData(requestPage).then(function () {
-        me.paint(me);
-    });
-    addInfoBox(me.backendApi.getRowCount());
-}
 
