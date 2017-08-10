@@ -243,25 +243,26 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                     return dfd.promise;
                 });
 
-                queueTest("Select Range", function () {
-                    var t = benchmark();
-                    var me = this;
-                    var dfd = qlik.Promise.defer();
-                    var range = {
-                        "qMeasureIx": 0,
-                        "qRange": {
-                            "qMin": 0,
-                            "qMax": 1,
-                        }
-                    };
-
-                    mainScope.backendApi.selectRange([range], false).then(function () {
-                        okTest(me.id, me.desc, t.finish());
-                        dfd.resolve();
-                    });
-                    console.log("layout",layout);
-                    return dfd.promise;
-                }, true);
+                //TODO Figure out if works
+                // queueTest("Select Range", function () {
+                //     var t = benchmark();
+                //     var me = this;
+                //     var dfd = qlik.Promise.defer();
+                //     var range = {
+                //         "qMeasureIx": 0,
+                //         "qRange": {
+                //             "qMin": 0,
+                //             "qMax": 1,
+                //         }
+                //     };
+                //
+                //     mainScope.backendApi.selectRange([range], false).then(function () {
+                //         okTest(me.id, me.desc, t.finish());
+                //         dfd.resolve();
+                //     });
+                //     console.log("layout",layout);
+                //     return dfd.promise;
+                // }, true);
 
 
                 queueTest("getData", function () {
