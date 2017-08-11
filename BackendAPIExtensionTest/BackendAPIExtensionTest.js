@@ -427,21 +427,21 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
 
         /** By George Tzanavaras, August 2017*/
-        queueTest(" getStackedData ",function () {
-            var t = benchmark();
-            var me = this;
-            var dfd = qlik.Promise.defer();
-            var dataPages=layout.qHyperCube;
-            let selectionState=currApp.selectionState();
-
-            if(selectionState.selections.length > 0) {
-                okTest(me.id , me.desc , t.finish());
-            } else {
-                failTest( me.id , me.desc , t.finish() , "getStackedData ");
-            }
-            dfd.resolve();
-            return dfd.promise;
-        }, false);
+        // queueTest(" getStackedData ",function () {
+        //     var t = benchmark();
+        //     var me = this;
+        //     var dfd = qlik.Promise.defer();
+        //     var dataPages=layout.qHyperCube;
+        //     let selectionState=currApp.selectionState();
+        //
+        //     if(selectionState.selections.length > 0) {
+        //         okTest(me.id , me.desc , t.finish());
+        //     } else {
+        //         failTest( me.id , me.desc , t.finish() , "getStackedData ");
+        //     }
+        //     dfd.resolve();
+        //     return dfd.promise;
+        // }, false);
     }
 
     return {
