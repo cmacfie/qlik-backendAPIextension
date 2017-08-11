@@ -501,8 +501,10 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
             currAppWithThis = (currAppWithThis) ? currAppWithThis : qlik.currApp(this);
 
 
-            setUpRecallTests(mainScope, layout);
-            runRecallTests();
+            if(!setProperty_done) {
+                setUpRecallTests(mainScope, layout);
+                runRecallTests();
+            }
 
             if (setProperty_done && !runNormalTestsStarted) {
                 setUpNormalTests(mainScope, layout);
