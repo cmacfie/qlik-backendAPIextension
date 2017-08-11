@@ -82,12 +82,51 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         template: template,
         initialProperties: {
             qHyperCubeDef: {
-                qDimensions: [],
-                qMeasures: [],
+                // qDimensions: [],
+                // qMeasures: [],
                 qInitialDataFetch: [{
                     qWidth: 10,
                     qHeight: 20
-                }]
+                }],
+                qDimensions: [
+                {
+                    qLabel: "IT Resources",
+                    qLibraryId: "rfQk",
+                    qNullSuppression: true,
+                    qOtherTotalSpec: {
+                        qOtherMode: "OTHER_OFF",
+                        qSuppressOther: true,
+                        qOtherSortMode: "OTHER_SORT_DESCENDING",
+                        qOtherCounted: {
+                            qv: "5"
+                        },
+                        qOtherLimitMode: "OTHER_GE_LIMIT"
+                    }
+                }
+                ],
+                qMeasures: [
+                    {
+                        qLabel: "Open Cases",
+                        qLibraryId: "MPcQeZ",
+                        qSortBy: {
+                            qSortByState: 0,
+                            qSortByFrequency: 0,
+                            qSortByNumeric: 0,
+                            qSortByAscii: 1,
+                            qSortByLoadOrder: 0,
+                            qSortByExpression: 0,
+                            qExpression: {
+                                qv: " "
+                            }
+                        }
+                    }
+                ],
+            qSuppressZero: false,
+            qSuppressMissing: false,
+            qMode: "K",
+            qInterColumnSortOrder: [],
+            qStateName: "$"
+
             }
         },
         definition: {
@@ -301,9 +340,10 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
 
              queueTest(" selectRange ",function () {
-                 // var t = benchmark();
-                 // var me = this;
-                 // var dfd = qlik.Promise.defer();
+
+                  var t = benchmark();
+                  var me = this;
+                  var dfd = qlik.Promise.defer();
                  // var dataPages=layout.qHyperCube;
                  // let selectionState=currApp.selectionState();
                  // console.log(selectionState);
@@ -324,17 +364,17 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                  //             okTest(me.id , me.desc , t.finish());
                  //         }
                  //         else {
-                 //             failTest( me.id , me.desc , t.finish() , " Select Range was not possible to be applied ");
+                             failTest( me.id , me.desc , t.finish() , " Pendings Select Range Test ");
                  //         }
                  //         selectionState.OnData.unbind( listener );
                  //         selectionState.clearAll();
-                 //         dfd.resolve();
+                            dfd.resolve();
                  //     });
                  // };
                  //
                  // selectionState.OnData.bind( listener );
                  //
-                 // return dfd.promise;
+                 return dfd.promise;
 
 
              });
@@ -374,21 +414,45 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
 
             queueTest(" getStackedData ",function () {
+                console.log(layout);
                 var t = benchmark();
                 var me = this;
                 var dfd = qlik.Promise.defer();
                 var dataPages=layout.qHyperCube;
-                let selectionState=currApp.selectionState();
+                var stackdataPages=layout.qHyperCube.qDataPages;
+
+                stackdataPages.forEach(function(cell,key){
+                    console.log(cell);
+                    if(key === 0)
+                    {
+
+                            dataPages.qStackedDataPages.push(cell);
+
+                    }
+                });
+
+
+                console.log(dataPages);
+
+                var requestPage = {
+                    qTop: 0,
+                    qLeft: 0,
+                    qWidth: 10,
+                    qHeight: 3
+                };
+
+                //Explore the wrong hypercube obj
+                backendApi.getStackData([requestPage], 0).then(function(dataPages){
+                    console.log(dataPages);
+                });
 
 
 
 
-                if(selectionState.selections.length > 0) {
-                    okTest(me.id , me.desc , t.finish());
-                }
-                else {
-                    failTest( me.id , me.desc , t.finish() , "getStackedData ");
-                }
+                    // okTest(me.id , me.desc , t.finish());
+                    //
+                    // failTest( me.id , me.desc , t.finish() , "getStackedData ");
+
 
                 dfd.resolve();
 
@@ -396,6 +460,25 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
 
             });
+
+
+            queueTest(" search ",function () {
+                console.log(layout);
+                var t = benchmark();
+                var me = this;
+                var dfd = qlik.Promise.defer();
+                var dataPages = layout.qHyperCube;
+
+                var searchV = dataPages.qDataPages[0].qMatrix[0][0].qText;
+
+                var res= backendApi.search(searchV);
+                console.log(backendApi.search(searchV));
+
+
+
+
+            });
+
 
 
 

@@ -29,14 +29,24 @@ require( ["js/qlik"], function ( qlik ) {
 	//open apps -- inserted here --
 
 	var app = qlik.openApp('Helpdesk Management.qvf', config);
+	var app1 = qlik.openApp('Helpdesk_Management.qvf', config);
+
 
 	//get objects -- inserted here --
-	app.getObject('QV01','fxq');
+	app1.getObject('QV01','VZpUGK');
+	
+	
+	
+	
+	
+	
 
 	console.log("app", app);
 
 
     //callbacks -- inserted here --
+	function StackMyPitchUp(reply, app){}
+
     function PriorityCall(reply, app){}
 
 
@@ -71,8 +81,50 @@ require( ["js/qlik"], function ( qlik ) {
         "qInterColumnSortOrder": [],
         "qStateName": "$"
     },PriorityCall);
-
+	app.createCube({
+	"qInitialDataFetch": [
+		{
+			"qHeight": 20,
+			"qWidth": 2
+		}
+	],
+	"qDimensions": [
+		{
+			"qLabel": "IT Resources",
+			"qLibraryId": "rfQk",
+			"qNullSuppression": true,
+			"qOtherTotalSpec": {
+				"qOtherMode": "OTHER_OFF",
+				"qSuppressOther": true,
+				"qOtherSortMode": "OTHER_SORT_DESCENDING",
+				"qOtherCounted": {
+					"qv": "5"
+				},
+				"qOtherLimitMode": "OTHER_GE_LIMIT"
+			}
+		}
+	],
+	"qMeasures": [
+		{
+			"qLabel": "Open Cases",
+			"qLibraryId": "MPcQeZ",
+			"qSortBy": {
+				"qSortByState": 0,
+				"qSortByFrequency": 0,
+				"qSortByNumeric": 0,
+				"qSortByAscii": 1,
+				"qSortByLoadOrder": 0,
+				"qSortByExpression": 0,
+				"qExpression": {
+					"qv": " "
+				}
+			}
+		}
+	],
+	"qSuppressZero": false,
+	"qSuppressMissing": false,
+	"qMode": "K",
+	"qInterColumnSortOrder": [],
+	"qStateName": "$"
+	},StackMyPitchUp);
 } );
-
-
-
