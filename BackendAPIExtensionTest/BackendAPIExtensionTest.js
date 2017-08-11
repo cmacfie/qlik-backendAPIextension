@@ -237,7 +237,6 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
 
         /** By Christoffer MacFie, August 2017*/
         queueTest("getData", function () {
-            console.log("Data started");
             var t = benchmark();
             var me = this;
             var dfd = qlik.Promise.defer();
