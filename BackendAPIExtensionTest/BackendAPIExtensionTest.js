@@ -234,7 +234,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
             }
             return dfd.promise;
         }, false);
-
+  
         /** By Christoffer MacFie, August 2017*/
         queueTest("getData", function () {
             var t = benchmark();
