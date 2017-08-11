@@ -124,10 +124,10 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                     } else if (props.props.testtitle === "testingtitle2" && setProperty_testInProgress) {
                         setProperty_stage = 3;
                         props.props.testtitle = "testingtitle";
-                        setProperty_done = true;
                         mainScope.backendApi.setProperties(props);
                     } else if (props.props.testtitle === "testingtitle" && setProperty_testInProgress) {
                         setProperty_testInProgress = false;
+                        setProperty_done = true;
                         okTest(me.id, me.desc, t.finish());
                         dfd.resolve();
                     } else {
@@ -138,13 +138,13 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                         var failMessage = "";
                         switch (setProperty_stage) {
                             case 1 :
-                                failMessage = "Expected title === 'testingtitle, was " + props.props.testtitle;
+                                failMessage = setProperty_stage + ": Expected title === 'testingtitle', was " + props.props.testtitle;
                                 break;
                             case 2 :
-                                failMessage = "Expected title === 'testingtitle2, was " + props.props.testtitle;
+                                failMessage = setProperty_stage + ": Expected title === 'testingtitle2, was " + props.props.testtitle;
                                 break;
                             case 3 :
-                                failMessage = "Expected title === 'testingtitle, was " + props.props.testtitle;
+                                failMessage = setProperty_stage + ": Expected title === 'testingtitle, was " + props.props.testtitle;
                                 break;
                             default :
                                 failMessage = "testtitle was " + props.props.testtitle;
@@ -452,7 +452,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 qMeasures: [],
                 qInitialDataFetch: [{
                     qWidth: 10,
-                    qHeight: 20
+                    qHeight: 5
                 }]
             }
         },
@@ -475,8 +475,9 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                     items: {
                         title: {
                             type: "string",
-                            ref: "props.title",
-                            label: "BeforeChange"
+                            ref: "props.testtitle",
+                            label: "BeforeChange",
+                            defaultValue: "testingtitle"
                         }
                     }
                 }
@@ -490,10 +491,6 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
         paint: function ($element, layout) {
 
             let mainScope = this;
-            let backendApi=mainScope.backendApi;
-
-
-            testCount = 0;
             Gelement = $element;
             resultElement = $element.find(".result");
             tbodyElement = $element.find("tbody");
@@ -506,7 +503,7 @@ define(["qlik", "jquery", "text!./style.css", "text!./template.html"], function 
                 runRecallTests();
             }
 
-            if (setProperty_done && !runNormalTestsStarted) {
+            if (setProperty_stage === 3 && !runNormalTestsStarted) {
                 setUpNormalTests(mainScope, layout);
                 runNormalTests();
                 runNormalTestsStarted = true;
